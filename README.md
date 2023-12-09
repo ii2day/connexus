@@ -1,5 +1,8 @@
 # connexus
-tcp udp connection pool management
+
+tcp udp 管理
+
+1 基于时间序列选取链接，优先选取长时间未使用的链接，保证链接活跃。
 
 
 ```go
