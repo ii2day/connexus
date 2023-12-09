@@ -22,7 +22,7 @@ func (c *Connex) Close() error {
 	c.updatedTime = time.Now()
 	if err := c.cp.put(c); err != nil {
 		c.cp = nil
-		return c.close()
+		return c.Conn.Close()
 	}
 	return nil
 }
