@@ -3,7 +3,6 @@ package connexus
 import (
 	"container/heap"
 	"errors"
-	"log"
 	"net"
 	"sort"
 	"sync"
@@ -24,20 +23,25 @@ type Pool interface {
 }
 
 type PoolConfig struct {
-	Cap     int
-	Factory func() (net.Conn, error)
+	Cap        int
+	MaxIdleCap int
+	Factory    func() (net.Conn, error)
 }
 
 type connexPool struct {
-	mu        sync.Mutex
-	freeConn  *PriorityQueue
-	Cap       int
-	cleanerCh chan struct{}
+	mu         sync.Mutex
+	freeConn   *PriorityQueue
+	Cap        int
+	MaxIdleCap int
+	cleanerCh  chan struct{}
 
 	factory func() (net.Conn, error)
 }
 
-func NewConnexPool(cfg *PoolConfig) (Pool, error) {
+func NewConnexPool(cfg PoolConfig) (Pool, error) {
+	if cfg.Cap > cfg.MaxIdleCap {
+		return nil, errors.New("Cap can not more than MaxIdleCap")
+	}
 
 	cp := &connexPool{
 		Cap:       cfg.Cap,
@@ -129,7 +133,6 @@ func (cp *connexPool) inducer() {
 			cp.mu.Unlock()
 
 		case <-cp.cleanerCh:
-			log.Println("cleaner exited...")
 			return
 		}
 	}
