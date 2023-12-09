@@ -20,6 +20,12 @@ func (c *Connex) Close() error {
 	}
 
 	c.updatedTime = time.Now()
+
+	if c.cp.Len() > c.cp.MaxIdleCap {
+		c.cp = nil
+		return c.Conn.Close()
+	}
+
 	if err := c.cp.put(c); err != nil {
 		c.cp = nil
 		return c.Conn.Close()
