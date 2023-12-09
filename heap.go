@@ -6,7 +6,7 @@ func (pq PriorityQueue) Len() int { return len(pq) }
 
 func (pq PriorityQueue) Less(i, j int) bool {
 	// we want to get the oldest item
-	return pq[i].updatedTime.Sub(pq[j].updatedTime) < 0
+	return pq[i].updatedTime.Sub(pq[j].updatedTime) > 0
 }
 
 func (pq PriorityQueue) Swap(i, j int) {
