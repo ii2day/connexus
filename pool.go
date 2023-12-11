@@ -45,7 +45,7 @@ func NewConnexPool(cfg PoolConfig) (Pool, error) {
 
 	cp := &connexPool{
 		Cap:       cfg.Cap,
-		cleanerCh: make(chan struct{}),
+		cleanerCh: make(chan struct{}, 1),
 		factory:   cfg.Factory,
 	}
 
