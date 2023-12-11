@@ -82,9 +82,6 @@ func (cp *connexPool) Get() (net.Conn, error) {
 }
 
 func (cp *connexPool) Close() {
-	cp.mu.Lock()
-	defer cp.mu.Unlock()
-
 	if cp.freeConn == nil {
 		return
 	}
