@@ -45,7 +45,7 @@ func NewConnexPool(cfg PoolConfig) (Pool, error) {
 
 	cp := &connexPool{
 		Cap:       cfg.Cap,
-		cleanerCh: make(chan struct{}, 1),
+		cleanerCh: make(chan struct{}),
 		factory:   cfg.Factory,
 	}
 
@@ -88,7 +88,10 @@ func (cp *connexPool) Close() {
 	if cp.freeConn == nil {
 		return
 	}
+	cp.mu.Lock()
 	cp.cleanerCh <- struct{}{}
+	cp.mu.Unlock()
+	cp.mu.Lock()
 	cp.factory = nil
 	for cp.freeConn.Len() > 0 {
 		c := heap.Pop(cp.freeConn).(*Connex)
@@ -96,6 +99,7 @@ func (cp *connexPool) Close() {
 		c.Conn.Close()
 	}
 	cp.freeConn = nil
+	cp.mu.Unlock()
 }
 
 func (cp *connexPool) put(conn *Connex) error {
