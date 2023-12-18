@@ -105,11 +105,12 @@ func (cp *connexPool) Get() (net.Conn, error) {
 		}
 		return cp.wrapConn(conn), nil
 	} else {
-		for cp.freeConn.Len() > 0 {
-			return heap.Pop(cp.freeConn).(*Connex), nil
+		for {
+			if cp.freeConn.Len() > 0 {
+				return heap.Pop(cp.freeConn).(*Connex), nil
+			}
 		}
 	}
-	return nil, errors.New("failed get connect")
 }
 
 func (cp *connexPool) Close() {
