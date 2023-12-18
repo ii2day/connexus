@@ -13,6 +13,9 @@ var (
 	ErrClosed = errors.New("pool is closed")
 )
 
+const MaxConnectCount = 20000
+const MaxIdleConnectCount = 25000
+
 type Pool interface {
 	// Get return a new item from the pool. Closing the item puts it back to the pool
 	Get() (net.Conn, error)
@@ -31,8 +34,8 @@ type PoolConfig struct {
 type connexPool struct {
 	mu         sync.Mutex
 	freeConn   *PriorityQueue
-	Cap        int
-	MaxIdleCap int
+	cap        int
+	maxIdleCap int
 	cleanerCh  chan struct{}
 
 	factory func() (net.Conn, error)
@@ -43,17 +46,33 @@ func NewConnexPool(cfg PoolConfig) (Pool, error) {
 		return nil, errors.New("Cap can not more than MaxIdleCap")
 	}
 
+	var poolCap int
+	var idleConnCap int
+
+	if cfg.Cap > MaxConnectCount {
+		poolCap = MaxConnectCount
+	} else {
+		poolCap = cfg.Cap
+	}
+
+	if cfg.MaxIdleCap > MaxIdleConnectCount {
+		idleConnCap = MaxIdleConnectCount
+	} else {
+		idleConnCap = cfg.Cap
+	}
+
 	cp := &connexPool{
-		Cap:       cfg.Cap,
-		cleanerCh: make(chan struct{}, 1),
-		factory:   cfg.Factory,
+		cap:        poolCap,
+		cleanerCh:  make(chan struct{}, 1),
+		factory:    cfg.Factory,
+		maxIdleCap: idleConnCap,
 	}
 
 	pq := make(PriorityQueue, 0, cfg.Cap)
 	heap.Init(&pq)
 	cp.freeConn = &pq
 
-	for i := 0; i < cfg.Cap; i++ {
+	for i := 0; i < poolCap; i++ {
 		conn, err := cfg.Factory()
 		if err != nil {
 			continue
@@ -107,7 +126,7 @@ func (cp *connexPool) put(conn *Connex) error {
 	if cp.freeConn == nil {
 		return ErrClosed
 	}
-	if cp.freeConn.Len() >= cp.Cap {
+	if cp.freeConn.Len() >= cp.cap {
 		return errors.New("pool have been filled")
 	}
 	heap.Push(cp.freeConn, conn)
