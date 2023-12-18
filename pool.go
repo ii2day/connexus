@@ -104,13 +104,9 @@ func (cp *connexPool) Get() (net.Conn, error) {
 			return nil, err
 		}
 		return cp.wrapConn(conn), nil
-	} else {
-		for {
-			if cp.freeConn.Len() > 0 {
-				return heap.Pop(cp.freeConn).(*Connex), nil
-			}
-		}
 	}
+
+	return nil, errors.New("can not allocate connect")
 }
 
 func (cp *connexPool) Close() {
