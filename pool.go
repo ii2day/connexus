@@ -54,7 +54,10 @@ func NewConnexPool(cfg PoolConfig) (Pool, error) {
 	cp.freeConn = &pq
 
 	for i := 0; i < cfg.Cap; i++ {
-		conn, _ := cfg.Factory()
+		conn, err := cfg.Factory()
+		if err != nil {
+			continue
+		}
 		cp.put(cp.wrapConn(conn).(*Connex))
 	}
 
