@@ -37,8 +37,8 @@ type connexPool struct {
 	cap        int
 	maxIdleCap int
 	cleanerCh  chan struct{}
-
-	factory func() (net.Conn, error)
+	count      int
+	factory    func() (net.Conn, error)
 }
 
 func NewConnexPool(cfg PoolConfig) (Pool, error) {
@@ -78,6 +78,7 @@ func NewConnexPool(cfg PoolConfig) (Pool, error) {
 			continue
 		}
 		cp.put(cp.wrapConn(conn).(*Connex))
+		cp.count++
 	}
 
 	go cp.inducer()
@@ -96,11 +97,19 @@ func (cp *connexPool) Get() (net.Conn, error) {
 		return heap.Pop(cp.freeConn).(*Connex), nil
 	}
 
-	conn, err := cp.factory()
-	if err != nil {
-		return nil, err
+	if cp.count < cp.maxIdleCap {
+		conn, err := cp.factory()
+		cp.count++
+		if err != nil {
+			return nil, err
+		}
+		return cp.wrapConn(conn), nil
+	} else {
+		for cp.freeConn.Len() > 0 {
+			return heap.Pop(cp.freeConn).(*Connex), nil
+		}
 	}
-	return cp.wrapConn(conn), nil
+	return nil, errors.New("failed get connect")
 }
 
 func (cp *connexPool) Close() {
